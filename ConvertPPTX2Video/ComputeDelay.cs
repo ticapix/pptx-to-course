@@ -17,15 +17,18 @@ namespace PPTX2Course
                         return ConvertStringToInt(transition.Duration);
                 }
             }
-            return 0; // TODO add default value
+            return 0;
         }
 
         public static int GetSlideAnimationsDuration(Slide slide)
         {
-            return ComputeTimingDelay(slide.Timing);
+            if (slide.Timing != null) {
+                return ComputeTimingDelay(slide.Timing);
+            }
+            return 0;
         }
 
-        public static int GetSlideAdvanceAfterTimeDuration(Slide slide)
+        public static int GetSlideAdvanceAfterTimeDuration(Slide slide, int defaultTransitionDurationMs)
         {
             // https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.presentation.transition?view=openxml-2.8.1
             var transitions = slide.Descendants<Transition>();
@@ -34,7 +37,7 @@ namespace PPTX2Course
                         return ConvertStringToInt(transition.AdvanceAfterTime);
                 }
             }
-            return 0; // TODO add default value
+            return defaultTransitionDurationMs;
         }
 
         public static int ConvertStringToInt(StringValue stringValue)
