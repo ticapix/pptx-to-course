@@ -3,13 +3,7 @@ using DocumentFormat.OpenXml.Presentation;
 using PowerPoint = Microsoft.Office.Interop.PowerPoint;
 using System.Diagnostics;
 using Microsoft.Office.Core;
-// using Microsoft.Office.Interop.Graph;
-using System.Runtime.InteropServices;
-using Microsoft.Office.Interop.PowerPoint;
-using System.IO;
 using FFMpegCore;
-using DocumentFormat.OpenXml.Office2016.Presentation.Command;
-using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace PPTX2Course
 {
@@ -20,8 +14,8 @@ namespace PPTX2Course
         {
             Console.WriteLine("The current time is " + DateTime.Now);
             TestFile("slides no transition no animation.pptx");
-            TestFile("slide animation 01.pptx");
             TestFile("slide animation 02.pptx");
+            TestFile("slide animation 01.pptx");
         }
 
         static private void TestFile(string pptxFileName) {
@@ -40,11 +34,11 @@ namespace PPTX2Course
     class PPTX2Video {
 // https://headontech.wordpress.com/2017/01/10/convert-microsoft-powerpoint-presentation-to-a-video-using-c-net-and-hosting-tips-iis/
         public static void ConvertToVideo(string pptxFileName, string mp4FileName, int defaultTransitionDurationMs = 5000) {
-            Microsoft.Office.Interop.PowerPoint.Application ppApp = new Microsoft.Office.Interop.PowerPoint.Application();
-            ppApp.Visible = MsoTriState.msoTrue;
-            ppApp.WindowState = PpWindowState.ppWindowMinimized;
-            Microsoft.Office.Interop.PowerPoint.Presentations oPresSet = ppApp.Presentations;
-            Microsoft.Office.Interop.PowerPoint._Presentation oPres = oPresSet.Open(pptxFileName, MsoTriState.msoFalse, MsoTriState.msoFalse, MsoTriState.msoFalse);
+            PowerPoint.Application ppApp = new PowerPoint.Application();
+            // ppApp.Visible = MsoTriState.msoTrue;
+            // ppApp.WindowState = PpWindowState.ppWindowMinimized;
+            PowerPoint.Presentations oPresSet = ppApp.Presentations;
+            PowerPoint._Presentation oPres = oPresSet.Open(pptxFileName, MsoTriState.msoFalse, MsoTriState.msoFalse, MsoTriState.msoFalse);
             System.Threading.Thread.Sleep(180);
             oPres.UpdateLinks();
             try {
@@ -52,7 +46,7 @@ namespace PPTX2Course
                 //CreateVideo(string FileName, bool UseTimingsAndNarrations, int DefaultSlideDuration, int VertResolution, int FramesPerSecond, int Quality)
                 oPres.CreateVideo(mp4FileName, true, defaultTransitionDurationMs/1000, 480, 30, 85);
 
-                while (oPres.CreateVideoStatus == Microsoft.Office.Interop.PowerPoint.PpMediaTaskStatus.ppMediaTaskStatusInProgress || oPres.CreateVideoStatus == Microsoft.Office.Interop.PowerPoint.PpMediaTaskStatus.ppMediaTaskStatusQueued) {
+                while (oPres.CreateVideoStatus == PowerPoint.PpMediaTaskStatus.ppMediaTaskStatusInProgress || oPres.CreateVideoStatus == PowerPoint.PpMediaTaskStatus.ppMediaTaskStatusQueued) {
                     System.Threading.Thread.Sleep(1000);
                 }
                 Console.WriteLine("Video is Created !!");
