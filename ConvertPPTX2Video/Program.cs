@@ -9,6 +9,7 @@ using Microsoft.Office.Interop.PowerPoint;
 using System.IO;
 using FFMpegCore;
 using DocumentFormat.OpenXml.Office2016.Presentation.Command;
+using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace PPTX2Course
 {
@@ -18,7 +19,9 @@ namespace PPTX2Course
         static void Main(string[] args)
         {
             Console.WriteLine("The current time is " + DateTime.Now);
-            TestFile("simple slides no transition no animation.pptx");
+            TestFile("slides no transition no animation.pptx");
+            TestFile("slide animation 01.pptx");
+            TestFile("slide animation 02.pptx");
         }
 
         static private void TestFile(string pptxFileName) {
@@ -29,7 +32,8 @@ namespace PPTX2Course
             PPTX2Video.ConvertToVideo(pptxFileName, videoFileName, defaultTransitionDurationMs);
             var mediaInfo = FFProbe.Analyse(videoFileName);
             Console.WriteLine($"Created video duration: {mediaInfo.Duration}.");
-            Debug.Assert(Math.Abs((pptxTimeSpan - mediaInfo.Duration).Milliseconds) < 200);
+            int maxDeltaMs = 150;
+            Debug.Assert(Math.Abs((pptxTimeSpan - mediaInfo.Duration).Milliseconds) < maxDeltaMs, $"{pptxFileName}: the difference between the computed duration {pptxTimeSpan} and rendered duration {mediaInfo.Duration} is greater than {maxDeltaMs} ms.");
         }
     }
 
@@ -81,14 +85,13 @@ namespace PPTX2Course
                         SlidePart slidePart = presentationPart.GetPartById(slideId.RelationshipId) as SlidePart;
                         DocumentFormat.OpenXml.Presentation.Slide slide = slidePart.Slide;
                         var advanceAfterTimeDuration = PPTXComputeDelay.GetSlideAdvanceAfterTimeDuration(slide, defaultTransitionDuration); // duration for the slide to be displayed
-                        var anitationsDuration = PPTXComputeDelay.GetSlideAnimationsDuration(slide); // duration of the animation + ??
+                        var animationsDuration = PPTXComputeDelay.GetSlideAnimationsDuration(slide); // duration of the animation + ??
                         var transitionDuration = PPTXComputeDelay.GetSlideTransitionsDuration(slide); // duration of the transition effect between slides
-
-                        var totalSlideDuration = advanceAfterTimeDuration + anitationsDuration + transitionDuration;
+                        var totalSlideDuration = Math.Max(advanceAfterTimeDuration, animationsDuration) + transitionDuration;
                         TimeSpan slideTime = TimeSpan.FromMilliseconds(totalSlideDuration);
                         presentationDuration = presentationDuration.Add(slideTime);
 
-                        Console.WriteLine($"Slide {slideNumber} Total Duration: {totalSlideDuration} ms. (aat: {advanceAfterTimeDuration} ms, ani: {anitationsDuration} ms trn: {transitionDuration} ms)");
+                        Console.WriteLine($"Slide {slideNumber} Total Duration: {totalSlideDuration} ms. (aat: {advanceAfterTimeDuration} ms, ani: {animationsDuration} ms trn: {transitionDuration} ms)");
                         slideNumber++;
                     }
                     Console.WriteLine($"Total Presentation Duration: {presentationDuration}.");
