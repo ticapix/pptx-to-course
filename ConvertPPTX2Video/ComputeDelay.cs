@@ -23,6 +23,7 @@ namespace PPTX2Course
         public static int GetSlideAnimationsDuration(Slide slide)
         {
             if (slide.Timing != null) {
+                Console.WriteLine(slide.Timing.OuterXml);
                 return ComputeTimingDelay(slide.Timing);
             }
             return 0;
@@ -85,6 +86,9 @@ namespace PPTX2Course
         */
         private static int ComputeTimeNodeListDelay(TimeTypeListType nodeList) {
             int delay = 0;
+            IEnumerable<string> nodeNames = nodeList.Select(node => node.LocalName);
+            Console.WriteLine($"found {nodeNames.Count()} elements in the list with types: " + string.Join(", ", nodeNames));
+
             foreach (var node in nodeList) {
                 if (node is ParallelTimeNode) { // http://www.datypic.com/sc/ooxml/e-p_par-1.html
                     delay += ComputeParallelTimeNodeDelay(node as ParallelTimeNode);
@@ -97,6 +101,9 @@ namespace PPTX2Course
                 }
                 else if (node is AnimateEffect) { // http://www.datypic.com/sc/ooxml/e-p_animEffect-1.html
                     delay += ComputeCommonTimeNodeDelay((node as AnimateEffect).CommonBehavior.CommonTimeNode);
+                }
+                else if (node is Animate) {
+                    // Do nothing
                 } else {
                     Console.WriteLine($"unknown node: {node.OuterXml}");
                 }
@@ -143,24 +150,33 @@ namespace PPTX2Course
             p:subTnLst [0..1]    Sub-TimeNodes List
         */
         private static int ComputeCommonTimeNodeDelay(CommonTimeNode node) {
+            int nodeDuration = 0;
+            int startCondDelay = 0;
+            int endCondDelay = 0;
             int delay = 0;
             if (node.Duration != null && node.Duration.HasValue) {
-                delay += ConvertStringToInt(node.Duration);
+                nodeDuration = ConvertStringToInt(node.Duration);
             }
             if (node.StartConditionList != null && node.StartConditionList.HasChildren) {
-                delay += ComputeTimeConditionListDelay(node.StartConditionList);
+                startCondDelay = ComputeTimeConditionListDelay(node.StartConditionList);
             }
             if (node.EndConditionList != null && node.EndConditionList.HasChildren) {
-            delay += ComputeTimeConditionListDelay(node.EndConditionList);
+                endCondDelay = ComputeTimeConditionListDelay(node.EndConditionList);
             }
             if (node.ChildTimeNodeList != null && node.ChildTimeNodeList.HasChildren) {
-                delay += ComputeTimeNodeListDelay(node.ChildTimeNodeList as TimeTypeListType);
+                delay = ComputeTimeNodeListDelay(node.ChildTimeNodeList as TimeTypeListType);
             }
             int repeatCount = 1;
             if (node.RepeatCount != null && node.RepeatCount.HasValue) {
                 repeatCount = ConvertStringToInt(node.RepeatCount) / 1000;
             }
-            return repeatCount * delay;
+            if (nodeDuration != 0) {
+                Debug.Assert(startCondDelay + (repeatCount * delay) + endCondDelay == 0);
+                return nodeDuration;
+            } else {
+                Debug.Assert(nodeDuration == 0);
+                return startCondDelay + (repeatCount * delay) + endCondDelay;
+            }
         }
 
 

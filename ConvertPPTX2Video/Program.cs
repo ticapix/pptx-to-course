@@ -10,30 +10,37 @@ namespace PPTX2Course
     class App
     {
         readonly static string rootFolder = "C:\\Users\\ticap\\Documents\\PPTX to courses\\tests\\";
+        readonly static int defaultMinVideoDurationMs = 30; // observed between 13ms and 26ms depending of the defaultTransitionDurationMs value
         static void Main(string[] args)
         {
             Console.WriteLine("The current time is " + DateTime.Now);
+            {
+                Debug.Assert(PPTXInfo.GetSlideDurations(rootFolder + "no slide.pptx", 0) == TimeSpan.FromSeconds(0));
+            }
+            TestFile("one slide.pptx");
             TestFile("slides no transition no animation.pptx");
-            TestFile("slide animation 02.pptx");
-            TestFile("slide animation 01.pptx");
+            TestFile("slide animation 01 - delay before animation.pptx");
+            TestFile("slide animation 01 - repeat.pptx");
+            // TestFile("slide animation 01.pptx");
+            // TestFile("slide animation 02.pptx");
         }
 
         static private void TestFile(string pptxFileName) {
             string videoFileName = App.rootFolder + "output.mp4";
             pptxFileName = rootFolder + pptxFileName;
-            int defaultTransitionDurationMs = 4000;
+            int defaultTransitionDurationMs = 3000;
             TimeSpan pptxTimeSpan = PPTXInfo.GetSlideDurations(pptxFileName, defaultTransitionDurationMs);
             PPTX2Video.ConvertToVideo(pptxFileName, videoFileName, defaultTransitionDurationMs);
             var mediaInfo = FFProbe.Analyse(videoFileName);
             Console.WriteLine($"Created video duration: {mediaInfo.Duration}.");
-            int maxDeltaMs = 150;
+            int maxDeltaMs = defaultMinVideoDurationMs + 50;
             Debug.Assert(Math.Abs((pptxTimeSpan - mediaInfo.Duration).Milliseconds) < maxDeltaMs, $"{pptxFileName}: the difference between the computed duration {pptxTimeSpan} and rendered duration {mediaInfo.Duration} is greater than {maxDeltaMs} ms.");
         }
     }
 
     class PPTX2Video {
 // https://headontech.wordpress.com/2017/01/10/convert-microsoft-powerpoint-presentation-to-a-video-using-c-net-and-hosting-tips-iis/
-        public static void ConvertToVideo(string pptxFileName, string mp4FileName, int defaultTransitionDurationMs = 5000) {
+        public static void ConvertToVideo(string pptxFileName, string mp4FileName, int defaultTransitionDurationMs) {
             PowerPoint.Application ppApp = new PowerPoint.Application();
             // ppApp.Visible = MsoTriState.msoTrue;
             // ppApp.WindowState = PpWindowState.ppWindowMinimized;
@@ -55,6 +62,7 @@ namespace PPTX2Course
                 Console.WriteLine($"ERROR: {er.StackTrace}");
             }
             finally {
+
                 oPres.Close();
                 ppApp.Quit();
                 GC.Collect();
@@ -74,6 +82,10 @@ namespace PPTX2Course
                     PresentationPart presentationPart = pptDocument.PresentationPart;
                     DocumentFormat.OpenXml.Presentation.Presentation presentation = presentationPart.Presentation;
                     int slideNumber = 1;
+                    if (presentation.SlideIdList == null) {
+                        return TimeSpan.FromSeconds(0);
+                    }
+
                     foreach (var slideId in presentation.SlideIdList.Elements<SlideId>())
                     {
                         SlidePart slidePart = presentationPart.GetPartById(slideId.RelationshipId) as SlidePart;
