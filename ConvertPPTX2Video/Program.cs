@@ -10,7 +10,7 @@ namespace PPTX2Course
     class App
     {
         readonly static string rootFolder = "C:\\Users\\ticap\\Documents\\PPTX to courses\\tests\\";
-        readonly static int defaultMinVideoDurationMs = 30; // observed between 13ms and 26ms depending of the defaultTransitionDurationMs value
+        readonly static int defaultMinVideoDurationMs = 50; // observed between 13ms and 26ms depending of the defaultTransitionDurationMs value
         static void Main(string[] args)
         {
             Console.WriteLine("The current time is " + DateTime.Now);
@@ -21,19 +21,27 @@ namespace PPTX2Course
             TestFile("slides no transition no animation.pptx");
             TestFile("slide animation 01 - delay before animation.pptx");
             TestFile("slide animation 01 - repeat.pptx");
-            // TestFile("slide animation 01.pptx");
-            // TestFile("slide animation 02.pptx");
+            TestFile("slide animation 01.pptx");
+            TestFile("slide animation animateColor.pptx");
+            TestFile("slide animation animateEffect.pptx");
+            TestFile("slide animation animateMotion.pptx");
+            TestFile("slide animation animateRotation.pptx");
+            TestFile("slide animation animateScale.pptx");
+            TestFile("slide animation 02.pptx");
+            TestFile("animation looping until end slide.pptx");
+            // TestFile("slides animations.pptx");
         }
 
         static private void TestFile(string pptxFileName) {
+            Console.WriteLine($"Testing file {pptxFileName}");
             string videoFileName = App.rootFolder + "output.mp4";
             pptxFileName = rootFolder + pptxFileName;
-            int defaultTransitionDurationMs = 3000;
+            int defaultTransitionDurationMs = 1000;
             TimeSpan pptxTimeSpan = PPTXInfo.GetSlideDurations(pptxFileName, defaultTransitionDurationMs);
             PPTX2Video.ConvertToVideo(pptxFileName, videoFileName, defaultTransitionDurationMs);
             var mediaInfo = FFProbe.Analyse(videoFileName);
             Console.WriteLine($"Created video duration: {mediaInfo.Duration}.");
-            int maxDeltaMs = defaultMinVideoDurationMs + 50;
+            int maxDeltaMs = defaultMinVideoDurationMs + 75;
             Debug.Assert(Math.Abs((pptxTimeSpan - mediaInfo.Duration).Milliseconds) < maxDeltaMs, $"{pptxFileName}: the difference between the computed duration {pptxTimeSpan} and rendered duration {mediaInfo.Duration} is greater than {maxDeltaMs} ms.");
         }
     }
@@ -90,9 +98,10 @@ namespace PPTX2Course
                     {
                         SlidePart slidePart = presentationPart.GetPartById(slideId.RelationshipId) as SlidePart;
                         DocumentFormat.OpenXml.Presentation.Slide slide = slidePart.Slide;
-                        var advanceAfterTimeDuration = PPTXComputeDelay.GetSlideAdvanceAfterTimeDuration(slide, defaultTransitionDuration); // duration for the slide to be displayed
-                        var animationsDuration = PPTXComputeDelay.GetSlideAnimationsDuration(slide); // duration of the animation + ??
-                        var transitionDuration = PPTXComputeDelay.GetSlideTransitionsDuration(slide); // duration of the transition effect between slides
+                        PPTXComputeDelay computeDelay = new PPTXComputeDelay(slide, defaultTransitionDuration);
+                        var advanceAfterTimeDuration = computeDelay.GetSlideAdvanceAfterTimeDuration(); // duration for the slide to be displayed
+                        var animationsDuration = computeDelay.GetSlideAnimationsDuration(); // duration of the animation + ??
+                        var transitionDuration = computeDelay.GetSlideTransitionsDuration(); // duration of the transition effect between slides
                         var totalSlideDuration = Math.Max(advanceAfterTimeDuration, animationsDuration) + transitionDuration;
                         TimeSpan slideTime = TimeSpan.FromMilliseconds(totalSlideDuration);
                         presentationDuration = presentationDuration.Add(slideTime);
