@@ -14,9 +14,7 @@ namespace PPTX2Course
         static void Main(string[] args)
         {
             Console.WriteLine("The current time is " + DateTime.Now);
-            {
-                Debug.Assert(PPTXInfo.GetSlideDurations(rootFolder + "no slide.pptx", 0) == TimeSpan.FromSeconds(0));
-            }
+            Debug.Assert(PPTXInfo.GetSlideDurations(rootFolder + "no slide.pptx", 0) == TimeSpan.FromSeconds(0));
             TestFile("one slide.pptx");
             TestFile("slides no transition no animation.pptx");
             TestFile("slide animation 01 - delay before animation.pptx");
@@ -29,6 +27,7 @@ namespace PPTX2Course
             TestFile("slide animation animateScale.pptx");
             TestFile("slide animation 02.pptx");
             TestFile("animation looping until end slide.pptx");
+            TestFile("slide animation 03.pptx");
             // TestFile("slides animations.pptx");
         }
 
@@ -102,6 +101,9 @@ namespace PPTX2Course
                         var advanceAfterTimeDuration = computeDelay.GetSlideAdvanceAfterTimeDuration(); // duration for the slide to be displayed
                         var animationsDuration = computeDelay.GetSlideAnimationsDuration(); // duration of the animation + ??
                         var transitionDuration = computeDelay.GetSlideTransitionsDuration(); // duration of the transition effect between slides
+                        if (transitionDuration > 10) { // if a real transition value was set
+                            transitionDuration = Math.Min(transitionDuration, defaultTransitionDuration); // it can't be longer than the default slide duration
+                        }
                         var totalSlideDuration = Math.Max(advanceAfterTimeDuration, animationsDuration) + transitionDuration;
                         TimeSpan slideTime = TimeSpan.FromMilliseconds(totalSlideDuration);
                         presentationDuration = presentationDuration.Add(slideTime);
